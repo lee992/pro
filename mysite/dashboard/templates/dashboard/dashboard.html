@@ -1,0 +1,289 @@
+<!-- dashboard.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>대시보드</title>
+    <!-- CSS 파일 경로 수정 -->
+    <link rel="stylesheet" href="{% static 'js/dashboard.css' %}">
+
+    <!-- 그래프를 그리기 위한 Chart.js 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 폭죽 효과를 위한 canvas-confetti 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <!-- 사이드바 토글 버튼 -->
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </button>
+    <!-- 사이드바: 주된 네비게이션 영역입니다. -->
+    <div class="sidebar">
+        <div class="logo">Y.B.<span>DashBoard</span></div>
+        <ul>
+            <li><a href="#" data-target="home-content">홈</a></li>
+            <li><a href="#" data-target="user-central-content">사용자 관리</a></li>
+            <li><a href="#" data-target="admin-content">관리자</a></li>
+            <li><a href="#" data-target="settings-content">설정</a></li>
+            <li><a href="#">지원</a></li> <!-- 특별 동작 링크 -->
+            <li><a href="/logout/">로그아웃</a></li> <!-- 로그아웃 URL 직접 연결 -->
+        </ul>
+        <div class="sidebar-footer">
+            <div class="theme-switch-wrapper">
+                <span class="theme-label">다크 모드</span>
+                <label class="theme-switch" for="theme-toggle">
+                    <input type="checkbox" id="theme-toggle" />
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="support">
+                <h4>오늘도 화이팅!</h4>
+                <p style="margin: 0 0 12px; font-size: 0.8rem;">버튼을 눌러 시작하세요</p>
+                <button id="celebrate-btn">업무 시작!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠: 사이드바 옆에 위치하는 실제 대시보드 영역입니다. -->
+    <div class="main-content">
+        <!-- 상단 탭 네비게이션 -->
+        <div class="top-nav">
+            <a href="#" class="active">HR</a>
+            <a href="#">FS</a>
+            <a href="#">CS</a>
+        </div>
+
+        <!-- User Central 페이지 콘텐츠 (Placeholder) -->
+        <div id="user-central-content" class="page-content">
+            <div class="data-table-container">
+                <h2>전체 사용자 목록</h2>
+                <div class="table-toolbar">
+                    <input type="text" id="user-search-input" placeholder="사용자명, 이메일, 이름으로 검색...">
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>사용자명</th>
+                            <th>이메일</th>
+                            <th>이름</th>
+                            <th>가입일</th>
+                            <th>상태</th>
+                            <th>동작</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td><strong>{{ user.username }}</strong></td>
+                            <td>{{ user.email|default:"-" }}</td>
+                            <td>{{ user.get_full_name|default:"-" }}</td>
+                            <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                            <td><span class="status-span {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">{% if user.is_active %}활성{% else %}비활성{% endif %}</span></td>
+                            <td>
+                                <button
+                                    class="btn-toggle-status {% if user.is_active %}btn-deactivate{% else %}btn-activate{% endif %}"
+                                    data-user-id="{{ user.id }}"
+                                    data-url="{% url 'dashboard:toggle_user_status' user.id %}"
+                                    {% if user.id == request.user.id %}disabled title="자신의 상태는 변경할 수 없습니다."{% endif %}>
+                                    {% if user.is_active %}비활성화{% else %}활성화{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">표시할 사용자가 없습니다.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if users.has_previous %}
+                            <a href="?page=1">&laquo; 처음</a>
+                            <a href="?page={{ users.previous_page_number }}">이전</a>
+                        {% endif %}
+
+                        <span class="current">
+                            Page {{ users.number }} of {{ users.paginator.num_pages }}.
+                        </span>
+
+                        {% if users.has_next %}
+                            <a href="?page={{ users.next_page_number }}">다음</a>
+                            <a href="?page={{ users.paginator.num_pages }}">마지막 &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 홈 콘텐츠 (기존 Home과 Dashboard 병합) -->
+        <div id="home-content" class="page-content.active">
+            <!-- 서비스 현황 대시보드 -->
+            <div class="dashboard-container">
+                <!-- 대시보드 헤더 -->
+                <div class="dashboard-header">
+                    <h1>서비스 현황 대시보드</h1>
+                </div>
+
+                <!-- 요약 카드 섹션 -->
+                <div class="summary-grid">
+                    <div class="card card-users">
+                        <h3>총 사용자</h3>
+                        <p class="count">{{ user_count }}</p>
+                    </div>
+                    <div class="card card-posts">
+                        <h3>총 게시글</h3>
+                        <p class="count">{{ post_count }}</p>
+                    </div>
+                    <div class="card card-comments">
+                        <h3>총 댓글</h3>
+                        <p class="count">{{ comment_count }}</p>
+                    </div>
+                    <div class="card card-likes">
+                        <h3>총 좋아요</h3>
+                        <p class="count">{{ like_count }}</p>
+                    </div>
+                    <div class="card card-bookmarks">
+                        <h3>총 북마크</h3>
+                        <p class="count">{{ bookmark_count }}</p>
+                    </div>
+                    <div class="card card-mau">
+                        <h3>월간 활성 사용자(MAU)</h3>
+                        <p class="count">{{ mau_count }}</p>
+                    </div>
+                </div>
+
+                <!-- 차트 섹션 -->
+                <div class="charts-grid">
+                    <!-- 일간 활성 사용자 그래프: 바 그래프로 표현 -->
+                    <div class="chart-container line-chart">
+                        <h2>일간 활성 사용자 (최근 7일)</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="dauChart"
+                                    data-labels='{{ dau_labels|safe }}'
+                                    data-values='{{ dau_values|safe }}'>
+                            </canvas>
+                        </div>
+                    </div>
+                    <!-- 전체 콘텐츠 분포 도넛 그래프 -->
+                    <div class="chart-container pie-chart">
+                        <h2>전체 콘텐츠 분포</h2>
+                        <div class="chart-wrapper">
+                            <canvas id="contentPieChart"
+                                    data-labels='{{ content_distribution_labels|safe }}'
+                                    data-values='{{ content_distribution_values|safe }}'></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 최근 가입자 및 게시글 목록 -->
+                <div class="details-grid">
+                    <div class="list-card">
+                        <h3>최근 가입자</h3>
+                        <ul>
+                            {% for user in recent_users %}
+                                <li>
+                                    <span class="item-title">{{ user.username }}</span>
+                                    <span class="item-meta">{{ user.date_joined|date:"Y-m-d" }}</span>
+                                </li>
+                            {% empty %}
+                                <li>가입한 사용자가 없습니다.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="list-card">
+                        <h3>최근 게시글</h3>
+                        <ul>
+                            {% for post in recent_posts %}
+                                <li>
+                                    <span class="item-title">{{ post.title }}</span>
+                                    <span class="item-meta">{{ post.author.username }} - {{ post.created_at|date:"Y-m-d" }}</span>
+                                </li>
+                            {% empty %}
+                                <li>작성된 게시글이 없습니다.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div><!-- end dashboard-container -->
+        </div>
+
+        <!-- Admin 페이지 콘텐츠 (Placeholder) -->
+        <div id="admin-content" class="page-content">
+            <iframe src="/admin/" class="admin-iframe" title="Django Admin"></iframe>
+        </div>
+
+        <!-- Settings 페이지 콘텐츠 (Placeholder) -->
+        <div id="settings-content" class="page-content">
+            <div class="settings-container">
+                <h2>설정</h2>
+                <div class="setting-section">
+                    <h3>프로필 정보</h3>
+                    <form onsubmit="return false;">
+                        <div class="form-group">
+                            <label for="username">사용자명</label>
+                            <input type="text" id="username" value="{{ request.user.username }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">이메일 주소</label>
+                            <input type="email" id="email" value="{{ request.user.email|default_if_none:'' }}" placeholder="이메일을 입력하세요">
+                        </div>
+                        <button type="button" class="btn-setting-action" onclick="alert('프로필 업데이트 기능은 준비 중입니다.')">프로필 업데이트</button>
+                        <button type="button" class="btn-setting-action" onclick="alert('비밀번호 변경 기능은 준비 중입니다.')">비밀번호 변경</button>
+                    </form>
+                </div>
+                <div class="setting-section">
+                    <h3>대시보드 환경설정</h3>
+                    <div class="setting-item">
+                        <span>새 사용자 가입 시 이메일 알림 받기</span>
+                        <label class="theme-switch"><input type="checkbox" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="setting-item">
+                        <span>일일 리포트 자동 생성</span>
+                        <label class="theme-switch"><input type="checkbox"><span class="slider"></span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- end main-content -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
+
+    <script>
+        // 폭죽을 터뜨리는 함수
+        function launchConfetti() {
+            // 별과 하트 폭죽을 먼저 터뜨립니다.
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                shapes: ['⭐', '💖'],
+                scalar: 1.5 // 모양 크기
+            });
+
+            // 0.25초 뒤에 동물 친구들이 깜짝 등장합니다.
+            setTimeout(() => {
+                const animalShapes = ['🦁', '🐯', '🐻', '🐶', '🐱'];
+                confetti({
+                    particleCount: 40,
+                    spread: 80,
+                    origin: { y: 0.6, x: Math.random() }, // 랜덤한 x 위치에서 발사
+                    shapes: animalShapes,
+                    scalar: 2.5 // 동물들은 더 크게!
+                });
+            }, 250);
+        }
+
+        // 페이지가 로드된 후 '업무 시작!' 버튼에 클릭 이벤트를 연결합니다.
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('celebrate-btn').addEventListener('click', launchConfetti);
+            initializeDashboard();
+        });
+    </script>
+
+</body>
+</html>

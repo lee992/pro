@@ -1,0 +1,117 @@
+/* admin_custom.css */
+
+/* 
+  대시보드의 다크 모드와 유사한 색상 테마를 관리자 페이지에 적용합니다.
+*/
+:root {
+    --primary-color: #4a69bd;
+    --secondary-color: #1e2a3a;
+    --background-color: #121821;
+    --text-color: #d0d2d6;
+    --card-bg-color: #1e2a3a;
+    --border-color: #2a3b50;
+    --row-hover-bg: #2a3b50; /* 행 호버 효과를 위한 변수 */
+    --header-bg: #1e2a3a;
+    --header-color: #ffffff;
+    --module-bg: #1e2a3a;
+    --link-color: #6fa8dc;
+    --hover-color: #5a88c6;
+    --content-bg: #161d27;
+}
+
+body {
+    background: var(--content-bg);
+    color: var(--text-color);
+}
+
+a {
+    color: var(--link-color);
+}
+
+/* 헤더 */
+#header {
+    background: var(--header-bg);
+    color: var(--header-color);
+}
+#header a:link, #header a:visited {
+    color: var(--header-color);
+}
+
+/* 콘텐츠 영역 */
+.module {
+    background: var(--module-bg);
+    border: 1px solid var(--border-color);
+}
+.module caption, .inline-group h2 {
+    background: var(--border-color);
+}
+
+/* 버튼 및 링크 */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    background: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    border: none;
+}
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover {
+    background: var(--hover-color);
+}
+.button.default, .submit-row .deletelink {
+    background: #6c757d;
+}
+
+/* 테이블 및 목록 */
+div.breadcrumbs, .paginator {
+    background: var(--module-bg);
+}
+.paginator a:link, .paginator a:visited {
+    background: var(--content-bg);
+}
+
+/* --- 모델 목록 (Changelist) 페이지 상세 스타일 --- */
+
+/* 테이블 헤더 */
+.results th {
+    background-color: var(--border-color);
+    color: var(--header-color);
+    font-weight: bold;
+}
+
+/* 테이블 행 */
+.results tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* 테이블 행 호버 효과 */
+.results tbody tr:hover {
+    background-color: var(--row-hover-bg);
+}
+
+/* 테이블 셀 */
+.results td, .results th {
+    padding: 12px 15px;
+    vertical-align: middle;
+}
+
+/* 필터 사이드바 */
+#changelist-filter {
+    background: var(--module-bg);
+    border-left: 1px solid var(--border-color);
+    padding: 15px;
+}
+
+#changelist-filter h2 {
+    background: none;
+    color: var(--header-color);
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+#changelist-filter a {
+    color: var(--link-color);
+}
+
+#changelist-filter .selected a {
+    color: var(--header-color);
+    font-weight: bold;
+}
