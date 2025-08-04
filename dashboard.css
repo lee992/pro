@@ -10,10 +10,12 @@
   --card-shadow-hover: 0 5px 15px rgba(0, 0, 0, 0.08);
   --card-header-color: #6c757d;
   --card-count-color: #212529;
-  --list-border: #eee;
+  --list-bo
+    rder: #eee;
   --list-item-border: #f5f5f5;
   --link-color: #0d6efd;
-  --slider-bg: #ccc;
+  --slider-bg: 
+#ccc;
   --chart-grid-color: #dee2e6;
 }
 /* 다크 테마 변수 정의 */
@@ -81,8 +83,10 @@ body.sidebar-open .hamburger-icon span:nth-child(1) {
 body.sidebar-open .hamburger-icon span:nth-child(2) {
     opacity: 0;
 }
+
 body.sidebar-open .hamburger-icon span:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
+  
 }
 .sidebar {
   position: fixed;
