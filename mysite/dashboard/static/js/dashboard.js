@@ -8,7 +8,7 @@
  */
 document.addEventListener('DOMContentLoaded', () => {
     // 전역에서 사용할 차트 인스턴스 변수
-    let dauChartInstance = null;
+    let mauChartInstance = null;
     let contentPieChartInstance = null;
 
     // --- DOM 요소 선택 ---
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyTheme = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
         // 테마 변경 시 차트도 업데이트
-        if (dauChartInstance) updateChartTheme(dauChartInstance, theme);
+        if (mauChartInstance) updateChartTheme(mauChartInstance, theme);
         if (contentPieChartInstance) updateChartTheme(contentPieChartInstance, theme);
     };
 
@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chartInstance.update();
     };
 
-    const createDauChart = () => {
-        const canvas = document.getElementById('dauChart');
+    const createMauChart = () => {
+        const canvas = document.getElementById('mauChart');
         if (!canvas || !window.Chart || !canvas.dataset.labels || !canvas.dataset.values) return null;
 
         try {
@@ -135,34 +135,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const colors = getChartColors(theme);
 
             const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(108, 139, 199, 0.6)');
+            gradient.addColorStop(1, 'rgba(108, 139, 199, 0.1)');
+
             return new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '일간 활성 사용자 수',
+                        label: '월간 활성 사용자 수',
                         data: data,
-                        backgroundColor: 'rgba(63, 167, 106, 0.5)',
-                        borderColor: 'rgba(63, 167, 106, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(108, 139, 199, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(108, 139, 199, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(108, 139, 199, 1)',
+                        fill: true,
+                        tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: {
+                        x: { 
                             grid: { color: colors.gridColor, borderColor: colors.gridColor },
                             ticks: { color: colors.ticksColor }
                         },
-                        y: {
+                        y: { 
                             beginAtZero: true,
                             grid: { color: colors.gridColor, borderColor: colors.gridColor },
                             ticks: {
                                 color: colors.ticksColor,
-                                stepSize: 1,
-                                precision: 0
+                                precision: 0 
                             }
                         }
                     },
@@ -178,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } catch (e) {
-            console.error('DAU 차트 데이터 파싱 또는 생성 중 오류 발생:', e);
+            console.error('MAU 차트 데이터 파싱 또는 생성 중 오류 발생:', e);
             return null;
         }
     };
@@ -229,6 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- 사용자 관리 기능 ---
+    const userListWrapper = document.getElementById('user-list-wrapper');
+
     const getCookie = (name) => {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -243,86 +253,99 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return cookieValue;
     };
-    const csrftoken = getCookie('csrftoken');
 
-    // 사용자 검색
-    if (userSearchInput) {
-        const userTableBody = document.querySelector('#user-central-content .data-table tbody');
+    // 사용자 목록을 비동기적으로 가져와 업데이트하는 함수
+    const fetchUserList = async (url) => {
+        try {
+            if (userListWrapper) userListWrapper.style.opacity = '0.5'; // 로딩 효과
 
-        userSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            let visibleRows = 0;
-
-            userTableRows.forEach(row => {
-                if (row.cells.length <= 1) return; // '사용자 없음' 행은 무시
-
-                const username = row.cells[0].textContent.toLowerCase();
-                const email = row.cells[1].textContent.toLowerCase();
-                const name = row.cells[2].textContent.toLowerCase();
-
-                if (username.includes(searchTerm) || email.includes(searchTerm) || name.includes(searchTerm)) {
-                    row.style.display = '';
-                    visibleRows++;
-                } else {
-                    row.style.display = 'none';
-                }
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
 
-            let noResultsRow = userTableBody.querySelector('.no-search-results');
-            if (visibleRows === 0 && searchTerm !== '' && !noResultsRow) {
-                noResultsRow = userTableBody.insertRow();
-                noResultsRow.className = 'no-search-results';
-                noResultsRow.innerHTML = `<td colspan="6" style="text-align: center; padding: 40px;">'${this.value}'에 대한 검색 결과가 없습니다.</td>`;
-            } else if ((visibleRows > 0 || searchTerm === '') && noResultsRow) {
-                noResultsRow.remove();
+            if (!response.ok) throw new Error('서버 응답 오류');
+
+            const html = await response.text();
+            if (userListWrapper) userListWrapper.innerHTML = html;
+
+        } catch (error) {
+            console.error('사용자 목록 업데이트 중 오류 발생:', error);
+            if (userListWrapper) userListWrapper.innerHTML = '<p style="text-align: center; color: red;">목록을 불러오는데 실패했습니다.</p>';
+        } finally {
+            if (userListWrapper) userListWrapper.style.opacity = '1';
+        }
+    };
+
+    // 이벤트 위임을 사용하여 동적으로 생성된 요소에도 이벤트 핸들러가 작동하도록 함
+    if (userListWrapper) {
+        userListWrapper.addEventListener('click', function(event) {
+            // 페이지네이션 링크 클릭 처리
+            if (event.target.matches('.pagination a')) {
+                event.preventDefault();
+                const url = event.target.getAttribute('href');
+                if (url) {
+                    const ajaxUrl = new URL(this.dataset.ajaxUrl, window.location.origin);
+                    const linkUrl = new URL(url, window.location.origin);
+                    ajaxUrl.search = linkUrl.search; // ?page=2&search=... 같은 파라미터 복사
+                    fetchUserList(ajaxUrl.toString());
+                }
+            }
+
+            // 사용자 상태 변경 버튼 클릭 처리
+            if (event.target.matches('.btn-toggle-status')) {
+                event.preventDefault();
+                const button = event.target;
+                const url = button.dataset.url;
+                const csrftoken = getCookie('csrftoken');
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                .then(response => response.ok ? response.json() : Promise.reject(response))
+                .then(data => {
+                    if (data.status === 'success') {
+                        const row = button.closest('tr');
+                        const statusSpan = row.querySelector('.status-span');
+                        if (data.is_active) {
+                            statusSpan.className = 'status-span status-active';
+                            statusSpan.textContent = '활성';
+                            button.className = 'btn-toggle-status btn-deactivate';
+                            button.textContent = '비활성화';
+                        } else {
+                            statusSpan.className = 'status-span status-inactive';
+                            statusSpan.textContent = '비활성';
+                            button.className = 'btn-toggle-status btn-activate';
+                            button.textContent = '활성화';
+                        }
+                    } else {
+                        alert('오류: ' + data.message);
+                    }
+                })
+                .catch(() => alert('요청 처리 중 오류가 발생했습니다.'));
             }
         });
     }
 
-    // 사용자 상태 토글
-    statusToggleButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const url = this.dataset.url;
-            const button = this;
+    // 사용자 검색 기능 (디바운싱 적용)
+    if (userSearchInput && userListWrapper) {
+        let searchTimeout;
+        userSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const searchTerm = this.value;
+            const ajaxUrl = userListWrapper.dataset.ajaxUrl;
 
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.message || '서버 오류가 발생했습니다.') });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const row = button.closest('tr');
-                    const statusSpan = row.querySelector('.status-span');
-
-                    if (data.is_active) {
-                        statusSpan.className = 'status-span status-active';
-                        statusSpan.textContent = '활성';
-                        button.className = 'btn-toggle-status btn-deactivate';
-                        button.textContent = '비활성화';
-                    } else {
-                        statusSpan.className = 'status-span status-inactive';
-                        statusSpan.textContent = '비활성';
-                        button.className = 'btn-toggle-status btn-activate';
-                        button.textContent = '활성화';
-                    }
-                } else {
-                    alert('오류: ' + data.message);
-                }
-            })
-            .catch(error => {
-                alert('요청 처리 중 오류가 발생했습니다: ' + error.message);
-            });
+            searchTimeout = setTimeout(() => {
+                const url = new URL(ajaxUrl, window.location.origin);
+                url.searchParams.set('search', searchTerm);
+                url.searchParams.set('page', '1'); // 검색 시에는 항상 첫 페이지로 이동
+                fetchUserList(url.toString());
+            }, 300); // 300ms 디바운스
         });
-    });
+    }
 
     // --- 기타 기능 ---
     celebrateBtn.addEventListener('click', () => {
@@ -343,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActivePage(defaultPageId);
 
         // 차트 생성
-        dauChartInstance = createDauChart();
+        mauChartInstance = createMauChart();
         contentPieChartInstance = createContentPieChart();
     };
 

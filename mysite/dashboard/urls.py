@@ -8,4 +8,6 @@ urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
     # 사용자 상태를 토글하기 위한 URL
     path('users/<int:user_id>/toggle_status/', views.toggle_user_status, name='toggle_user_status'),
+    # AJAX 페이지네이션 및 검색을 위한 URL
+    path('ajax/user-list/', views.user_list_partial, name='user_list_partial'),
 ]

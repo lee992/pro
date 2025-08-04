@@ -2,10 +2,11 @@
 
 import json
 from datetime import timedelta
+from datetime import date
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db import models
+from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -40,16 +41,25 @@ def dashboard_view(request):
     mau_count = User.objects.filter(last_login__gte=thirty_days_ago).count()
 
     # 3. 차트 데이터
-    # 일간 활성 사용자 (DAU) - 최근 7일
-    dau_labels = []
-    dau_values = []
-    today = timezone.now().date()
-    for i in range(6, -1, -1):  # 6일 전부터 오늘까지
-        day = today - timedelta(days=i)
-        dau_count = User.objects.filter(last_login__date=day).count()
-        dau_labels.append(day.strftime('%m-%d'))
-        dau_values.append(dau_count)
-
+    # 월간 활성 사용자 (MAU) 그래프 - 최근 12개월
+    mau_chart_labels = []
+    mau_chart_values = []
+    current_date = timezone.now().date()
+    for i in range(11, -1, -1):  # 11개월 전부터 이번달까지
+        # Calculate year and month for 'i' months ago
+        year = current_date.year
+        month = current_date.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+ 
+        # Get the number of distinct users who logged in that month
+        mau_for_month = User.objects.filter(
+            last_login__year=year, last_login__month=month
+        ).values("id").distinct().count()
+        mau_chart_labels.append(date(year, month, 1).strftime("%Y-%m"))
+        mau_chart_values.append(mau_for_month)
+ 
     # 전체 콘텐츠 분포
     content_distribution_labels = ['게시글', '댓글', '좋아요', '북마크']
     content_distribution_values = [post_count, comment_count, like_count, bookmark_count]
@@ -66,8 +76,8 @@ def dashboard_view(request):
         'like_count': like_count,
         'bookmark_count': bookmark_count,
         'mau_count': mau_count,
-        'dau_labels': json.dumps(dau_labels),
-        'dau_values': json.dumps(dau_values),
+        'mau_chart_labels': json.dumps(mau_chart_labels),
+        'mau_chart_values': json.dumps(mau_chart_values),
         'content_distribution_labels': json.dumps(content_distribution_labels),
         'content_distribution_values': json.dumps(content_distribution_values),
         'recent_users': recent_users,
@@ -88,3 +98,25 @@ def toggle_user_status(request, user_id):
         return JsonResponse({'status': 'success', 'is_active': user_to_toggle.is_active})
     except User.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': '사용자를 찾을 수 없습니다.'}, status=404)
+
+
+@login_required
+def user_list_partial(request):
+    """
+    AJAX 페이지네이션 및 검색 요청을 처리하여 사용자 목록 HTML 조각을 반환하는 뷰.
+    """
+    search_query = request.GET.get('search', '')
+    user_list = User.objects.all().order_by('-date_joined')
+
+    if search_query:
+        user_list = user_list.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+
+    page = request.GET.get('page', 1)
+    paginator = Paginator(user_list, 10)  # 한 페이지에 10명씩 표시
+    users = paginator.get_page(page)
+    return render(request, 'dashboard/_user_list.html', {'users': users})

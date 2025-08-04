@@ -1,0 +1,49 @@
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>사용자명</th>
+            <th>이메일</th>
+            <th>이름</th>
+            <th>가입일</th>
+            <th>상태</th>
+            <th>동작</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td><strong>{{ user.username }}</strong></td>
+            <td>{{ user.email|default:"-" }}</td>
+            <td>{{ user.get_full_name|default:"-" }}</td>
+            <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+            <td><span class="status-span {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">{% if user.is_active %}활성{% else %}비활성{% endif %}</span></td>
+            <td>
+                <button
+                    class="btn-toggle-status {% if user.is_active %}btn-deactivate{% else %}btn-activate{% endif %}"
+                    data-user-id="{{ user.id }}"
+                    data-url="{% url 'dashboard:toggle_user_status' user.id %}"
+                    {% if user.id == request.user.id %}disabled title="자신의 상태는 변경할 수 없습니다."{% endif %}>
+                    {% if user.is_active %}비활성화{% else %}활성화{% endif %}
+                </button>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" style="text-align: center; padding: 40px;">표시할 사용자가 없습니다.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="pagination">
+    <span class="step-links">
+        {% if users.has_previous %}
+            <a href="?page=1&search={{ request.GET.search|default:'' }}">&laquo; 처음</a>
+            <a href="?page={{ users.previous_page_number }}&search={{ request.GET.search|default:'' }}">이전</a>
+        {% endif %}
+        <span class="current">Page {{ users.number }} of {{ users.paginator.num_pages }}.</span>
+        {% if users.has_next %}
+            <a href="?page={{ users.next_page_number }}&search={{ request.GET.search|default:'' }}">다음</a>
+            <a href="?page={{ users.paginator.num_pages }}&search={{ request.GET.search|default:'' }}">마지막 &raquo;</a>
+        {% endif %}
+    </span>
+</div>
