@@ -1,0 +1,85 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}게시판{% endblock %} | Y.B. Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/board.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="board-container">
+        <header class="board-header">
+            <a href="{% url 'dashboard:post_list' %}" class="logo">Y.B.<span>Board</span></a>
+            <nav class="user-nav">
+                <span>환영합니다, {{ user.username }}님!</span>
+                <a href="{% url 'dashboard:user_home' %}">마이페이지</a>
+                <form id="logout-form" method="post" action="{% url 'dashboard:logout' %}" style="display: none;">
+                    {% csrf_token %}
+                </form>
+                <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">로그아웃</a>
+            </nav>
+        </header>
+
+        <main class="board-content">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const likeButton = document.getElementById('like-btn');
+            if (likeButton) {
+                likeButton.addEventListener('click', () => {
+                    const postId = likeButton.dataset.postId;
+                    const url = `/board/post/${postId}/like/`;
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken
+                            // 'Content-Type' 헤더는 불필요하므로 삭제합니다.
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const likeIcon = likeButton.querySelector('i');
+                        const likeCountSpan = likeButton.querySelector('.like-count');
+                        
+                        likeButton.classList.toggle('liked', data.is_liked);
+                        likeIcon.classList.toggle('fas', data.is_liked); // Solid heart
+                        likeIcon.classList.toggle('far', !data.is_liked); // Outline heart
+                        likeCountSpan.textContent = data.like_count;
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

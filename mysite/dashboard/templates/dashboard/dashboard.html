@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <title>대시보드</title>
-    <link rel="stylesheet" href="{% static 'js/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
     <!-- 그래프를 그리기 위한 Chart.js 라이브러리 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,7 +30,30 @@
             <li><a href="#" data-target="admin-content">관리자</a></li>
             <li><a href="#" data-target="settings-content">설정</a></li>
             <li><a href="#">지원</a></li> <!-- 특별 동작 링크 -->
-            <li><a href="/logout/">로그아웃</a></li> <!-- 로그아웃 URL 직접 연결 -->
+            {% load i18n %}
+            <li class="nav-item">
+            {% if user.is_authenticated %}
+                {# 로그인이 되어있으면 '로그아웃' 버튼 표시 (POST 방식) #}
+                
+                <!-- 로그아웃 요청을 보낼 숨겨진 폼 -->
+                <form id="logout-form" method="post" action="{% url 'dashboard:logout' %}" style="display: none;">
+                    {% csrf_token %}
+                </form>
+        
+                <!-- 클릭 시 위 폼을 제출하는 링크 -->
+                <a class="nav-link" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>{% translate 'Log out' %}</span>
+                </a>
+        
+            {% else %}
+                {# 로그인이 안 되어있으면 '로그인' 버튼 표시 #}
+                <a class="nav-link" href="{% url 'dashboard:login' %}?next={{ request.path }}">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>{% translate 'Log in' %}</span>
+                </a>
+            {% endif %}
+        </li>
         </ul>
         <div class="sidebar-footer">
             <div class="theme-switch-wrapper">
@@ -45,7 +68,7 @@
                 <p style="margin: 0 0 12px; font-size: 0.8rem;">버튼을 눌러 시작하세요</p>
                 <button id="celebrate-btn">업무 시작!</button>
             </div>
-        </div>
+        </div>  
     </div>
 
     <!-- 메인 콘텐츠: 사이드바 옆에 위치하는 실제 대시보드 영역입니다. -->

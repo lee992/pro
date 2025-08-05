@@ -125,4 +125,29 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 동일한 도메인 내에서 iframe을 통한 렌더링을 허용합니다.
 # 이 설정을 추가해야 대시보드 내에서 관리자 페이지가 보입니다.
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+X_FRAME_OPTIONS = 'SAMEORIGIN'# mysite/settings.py
+
+# ... 다른 설정들 ...
+
+# 로그인 성공 후 이동할 기본 URL
+LOGIN_REDIRECT_URL = 'dashboard:login_redirect'
+
+# 사용자가 로그인이 필요한 페이지에 접근 시 이동할 로그인 페이지 URL
+LOGIN_URL = 'dashboard:login'
+
+# Email settings for Gmail SMTP
+# --------------------------------------------------------------------------
+# WARNING: 실제 서비스에서는 이메일 주소와 비밀번호를 코드에 직접 작성하지 마세요.
+#          보안을 위해 환경 변수나 별도의 설정 파일을 사용하는 것이 좋습니다.
+# --------------------------------------------------------------------------
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP 서버 주소
+EMAIL_PORT = 587               # Gmail SMTP 포트 (TLS)
+EMAIL_USE_TLS = True           # TLS 암호화 사용
+
+# 🚨 아래 두 줄에 실제 Gmail 주소와 위에서 발급받은 16자리 앱 비밀번호를 입력하세요.
+EMAIL_HOST_USER = 'dldydqja369@gmail.com'
+EMAIL_HOST_PASSWORD = 'hbdb dyuh kmms duyw'
+
+# 이메일을 보낼 때 기본적으로 사용할 주소
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
